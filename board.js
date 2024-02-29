@@ -20,9 +20,10 @@ export async function postListAPI(req, res) {
 	}
 
 	try {
+		//빈칸이면리턴
 		if (searchText != "") { 
 			searchText = searchText.replace(/([%_])/g, "\\$1")
-
+			//스위치문
 			if (searchOpt === '제목') {
 				searchQuery = "AND post.title LIKE '%" + searchText + "%'"
 			} else if (searchOpt === '제목+내용') {
@@ -30,7 +31,6 @@ export async function postListAPI(req, res) {
 			} else if (searchOpt === '작성자') { 
 				searchQuery = "AND userdata.name LIKE '%" + searchText + "%'"
 			}
-			
 		}
 
 		const [boardInfoResult] = await connection.query("SELECT \
@@ -44,6 +44,7 @@ export async function postListAPI(req, res) {
 			res.status(400).send("Invalid board name")
 			return
 		}
+
 		const targetBoardID = boardInfoResult[0].id
 
 		const [countResult] = await connection.query("SELECT \
@@ -84,7 +85,7 @@ export async function postListAPI(req, res) {
 				board_name: row.board_name,
 				content: substrContent(row.content, 50),
 				registered_by: row.name,
-				registered_date: Math.floor(date.getTime() / 1000)
+				registered_date: Math.floor(date.getTime() / 1000),
 			})
 		}
 
@@ -119,11 +120,10 @@ export async function boardPostAPI(req, res) {
 	}
 }
 
-export async function postUpdateAPI(req, res) { 
+export async function postUpdateAPI(req, res) {
 	const boardName = req.body.board_name;
 	const title = req.body.title;
 	const content = req.body.content;
-	// const registeredBy = req.body.registered_by;
 	const id = req.body.id
 
 	const update = "UPDATE post SET board_id = ?, title = ?, content = ? WHERE id = ?";

@@ -44,9 +44,9 @@ import { signInAPI, loginAPI, updateUserInfoAPI, autoLoginAPI, validateToken } f
 import { likedAPI } from "./like.js"
 
 app.get('/boards', postListAPI)
-app.post('/post', boardPostAPI)
-app.post('/postUpdate', postUpdateAPI)
-app.post('/postDelete', postDeleteAPI)
+app.post('/post',validateToken, boardPostAPI)
+app.post('/postUpdate',validateToken, postUpdateAPI)
+app.post('/postDelete',validateToken, postDeleteAPI)
 
 app.get('/detail', getPostDetailAPI)
 app.get('/getBoardList', getBoardListAPI)
@@ -59,6 +59,6 @@ app.post('/updateUserInfo', validateToken, updateUserInfoAPI)
 
 app.post('/liked', likedAPI)
 
-app.post('/submitCmt', submitCmtAPI)
-app.post('/deleteCmt', deleteCmtAPI)
-app.post('/updateCmt', updateCmtAPI)
+app.post('/submitCmt', validateToken, submitCmtAPI)
+app.post('/deleteCmt', validateToken, deleteCmtAPI)
+app.post('/updateCmt', validateToken, updateCmtAPI)

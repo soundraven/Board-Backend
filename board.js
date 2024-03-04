@@ -20,9 +20,10 @@ export async function postListAPI(req, res) {
 	}
 
 	try {
+		//빈칸이면리턴
 		if (searchText != "") { 
 			searchText = searchText.replace(/([%_])/g, "\\$1")
-
+			//스위치문
 			if (searchOpt === '제목') {
 				searchQuery = "AND post.title LIKE '%" + searchText + "%'"
 			} else if (searchOpt === '제목+내용') {
@@ -30,7 +31,6 @@ export async function postListAPI(req, res) {
 			} else if (searchOpt === '작성자') { 
 				searchQuery = "AND userdata.name LIKE '%" + searchText + "%'"
 			}
-			
 		}
 
 		const [boardInfoResult] = await connection.query("SELECT \
@@ -44,6 +44,7 @@ export async function postListAPI(req, res) {
 			res.status(400).send("Invalid board name")
 			return
 		}
+
 		const targetBoardID = boardInfoResult[0].id
 
 		const [countResult] = await connection.query("SELECT \
@@ -58,8 +59,6 @@ export async function postListAPI(req, res) {
 		const itemsPerPage = Math.min(perPage, 50)
 		const totalPages = Math.ceil(totalPosts / itemsPerPage)
 
-
-		//여기서 if문으로 한번 조건 걸어서 searchOpt에 따라 결과 다르게 보내게 하면?
 		const [itemResults] = await connection.query("SELECT\
 			post.*, userdata.name, boards.board_name\
 			FROM post\
@@ -84,7 +83,7 @@ export async function postListAPI(req, res) {
 				board_name: row.board_name,
 				content: substrContent(row.content, 50),
 				registered_by: row.name,
-				registered_date: Math.floor(date.getTime() / 1000)
+				registered_date: Math.floor(date.getTime() / 1000),
 			})
 		}
 
@@ -109,6 +108,10 @@ export async function boardPostAPI(req, res) {
 	const content = req.body.content;
 	const registeredBy = req.body.registered_by;
 
+	if (res.locals.user.id !== registeredBy) { 
+		res.status(500).send('validate fail');
+	}
+
 	const post = "INSERT INTO post (board_id, title, content, registered_by) \
 		VALUES (?, ?, ?, ?)";
 	try {
@@ -119,12 +122,16 @@ export async function boardPostAPI(req, res) {
 	}
 }
 
-export async function postUpdateAPI(req, res) { 
+export async function postUpdateAPI(req, res) {
 	const boardName = req.body.board_name;
 	const title = req.body.title;
 	const content = req.body.content;
-	// const registeredBy = req.body.registered_by;
 	const id = req.body.id
+	const registeredBy = req.body.registered_by
+
+	if (res.locals.user.id !== registeredBy) {
+		res.status(500).send('validate fail');
+	}
 
 	const update = "UPDATE post SET board_id = ?, title = ?, content = ? WHERE id = ?";
 	
@@ -147,7 +154,6 @@ export async function postDeleteAPI(req, res) {
 	}
 }
 
-//커먼코드 가져오기, 커먼코드 기준으로 데이터 가져와서 v-for
 export async function getBoardListAPI(req, res) { 
 	const sql = "SELECT \
 	`id`, `board_id`, `board_name` FROM `boards` \
@@ -163,7 +169,6 @@ export async function getBoardListAPI(req, res) {
 }
 
 export async function getPostDetailAPI(req, res) { 
-	//postDetail 가져오면서 이미 내가 좋아요 싫어요 누른 적 있는지 확인도 가능
 	const id = req.query.id
 
 	const getPostDetail = `SELECT 
@@ -205,7 +210,6 @@ export async function getPostDetailAPI(req, res) {
 			board_name: postRow.board_name,
 			content: postRow.content,
 			registered_by: postRow.name,
-			//작성일자를 타임스탬프 형태로 가공하는 과정
 			registered_date: Math.floor(postDate.getTime() / 1000),
 			like_count: postRow.like_count,
 			dislike_count: postRow.dislike_count,
@@ -309,44 +313,3 @@ export async function getMyPostAPI(req, res) {
 		}
 	}
 }
-
-// export async function submitCmtAPI(req, res) { 
-// 	const postId = req.body.postId
-// 	const content = req.body.cmt
-// 	const registeredBy = req.body.registeredBy
-
-// 	const insertCmt = `INSERT INTO comment ( post_id, content, registered_by)
-// 		VALUES (?, ?, ?)`
-
-// 	try {
-// 		const result = await connection.query(insertCmt, [postId, content, registeredBy])
-// 		res.status(200).send()
-// 	} catch (err) { 
-// 		res.status(500).send(err)
-// 	}
-// }
-
-// export async function deleteCmtAPI(req, res) { 
-// 	const id = req.body.cmtId
-// 	const deleteCmt = "UPDATE comment SET active = 0 WHERE id = ?"
-
-// 	try {
-// 		const result = await connection.query(deleteCmt, [id])
-// 		res.status(200).send()
-// 	} catch (err) { 
-// 		res.status(500).send(err)
-// 	}
-// }
-
-// export async function updateCmtAPI(req, res) { 
-// 	const id = req.body.cmtId
-// 	const updateCmt = "UPDATE comment SET content = ? WHERE id = ?"
-
-// 	try {
-// 		const result = await connection.query(updateCmt, [content])
-// 		res.status(200).send()
-// 	} catch (err) { 
-// 		res.status(500).send(err)
-// 	}
-// }
-

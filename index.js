@@ -13,14 +13,12 @@ const port = 3000
 app.use(cors())
 app.use(bodyParser.json())
 
-app.get('/', helloWorldAPI)
-
 app.listen(port, () => {
 		console.log(`open server ${port}`)
 })
 
 export let connection = null
-
+//.env방식으로 다시하기
 async function startServer() {
 	connection = await mysql.createConnection({
 		host: dbConnection.DB_HOST,
@@ -36,7 +34,6 @@ async function startServer() {
 
 startServer();
 
-import { helloWorldAPI } from "./hello.js"
 import {
 	postListAPI, boardPostAPI, postUpdateAPI,
 	postDeleteAPI, getBoardListAPI, getPostDetailAPI,
@@ -44,15 +41,12 @@ import {
 } from "./board.js"
 import { submitCmtAPI, deleteCmtAPI, updateCmtAPI,} from "./comment.js"
 import { signInAPI, loginAPI, updateUserInfoAPI, autoLoginAPI, validateToken } from "./userdata.js"
-import { subwayArrivalAPI } from "./station.js"
 import { likedAPI } from "./like.js"
 
-app.get('subwayArrival', subwayArrivalAPI)
-
 app.get('/boards', postListAPI)
-app.post('/post', boardPostAPI)
-app.post('/postUpdate', postUpdateAPI)
-app.post('/postDelete', postDeleteAPI)
+app.post('/post',validateToken, boardPostAPI)
+app.post('/postUpdate',validateToken, postUpdateAPI)
+app.post('/postDelete',validateToken, postDeleteAPI)
 
 app.get('/detail', getPostDetailAPI)
 app.get('/getBoardList', getBoardListAPI)
@@ -65,6 +59,6 @@ app.post('/updateUserInfo', validateToken, updateUserInfoAPI)
 
 app.post('/liked', likedAPI)
 
-app.post('/submitCmt', submitCmtAPI)
-app.post('/deleteCmt', deleteCmtAPI)
-app.post('/updateCmt', updateCmtAPI)
+app.post('/submitCmt', validateToken, submitCmtAPI)
+app.post('/deleteCmt', validateToken, deleteCmtAPI)
+app.post('/updateCmt', validateToken, updateCmtAPI)

@@ -127,6 +127,7 @@ export async function postUpdateAPI(req, res) {
 	const title = req.body.title;
 	const content = req.body.content;
 	const id = req.body.id
+
 	const registeredBy = req.body.registered_by
 
 	if (res.locals.user.id !== registeredBy) {
@@ -209,7 +210,7 @@ export async function getPostDetailAPI(req, res) {
 			title: postRow.title,
 			board_name: postRow.board_name,
 			content: postRow.content,
-			registered_by: postRow.name,
+			registered_by: postRow.registered_by,
 			registered_date: Math.floor(postDate.getTime() / 1000),
 			like_count: postRow.like_count,
 			dislike_count: postRow.dislike_count,
@@ -275,7 +276,7 @@ export async function getMyPostAPI(req, res) {
 	try {
 		const [countedPost] = await connection.query(countAllPost, [name])
 		const totalCount = countedPost[0].post_count
-		const itemsPerPage = Math.min(20, 50)
+		const itemsPerPage = Math.min(30, 50)
 		const totalPages = Math.ceil(totalCount / itemsPerPage)
 
 		const [itemsResult] = await connection.query(getMyPostList, [
@@ -295,7 +296,8 @@ export async function getMyPostAPI(req, res) {
 				board_name: row.board_name,
 				content: substrContent(row.content, 50),
 				registered_by: row.name,
-				registered_date: Math.floor(date.getTime() / 1000)
+				registered_date: Math.floor(date.getTime() / 1000),
+				active: row.active,
 			})
 		}
 

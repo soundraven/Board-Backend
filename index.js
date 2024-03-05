@@ -3,10 +3,9 @@ import express from "express"
 import bodyParser from "body-parser"
 import cors from "cors"
 import mysql from "mysql2/promise"
-import dbConnection from "./dbConnection.js"
+import dotenv from "dotenv"
+dotenv.config()
 
-//import등 할때 경로 단축해서 작성할 수 있게 해주는 것 있음.
-//"type": "module"를 package.json에 작성해야 import export 가능함
 const app = express()
 const port = 3000
 
@@ -18,13 +17,13 @@ app.listen(port, () => {
 })
 
 export let connection = null
-//.env방식으로 다시하기
+
 async function startServer() {
 	connection = await mysql.createConnection({
-		host: dbConnection.DB_HOST,
-		user: dbConnection.DB_USER,
-		password: dbConnection.DB_PASSWORD,
-		database: dbConnection.DB_DATABASE,
+		host: process.env.DB_HOST,
+		user: process.env.DB_USER,
+		password: process.env.DB_PASSWORD,
+		database: process.env.DB_DATABASE,
 	})
 
 	if (connection != null) {

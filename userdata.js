@@ -1,6 +1,5 @@
 import crypto from "crypto"
 import { connection } from "./index.js"
-import ENCRYPTION_SALT from "./pwSalt.js"
 
 export async function signInAPI(req, res) { 
     const name = req.body.id;
@@ -19,7 +18,7 @@ export async function signInAPI(req, res) {
                 message: "이미 존재하는 아이디 입니다."
             });
         } else { 
-            const encryptedPw = crypto.createHash("sha256").update(pw + ENCRYPTION_SALT).digest("hex")
+            const encryptedPw = crypto.createHash("sha256").update(pw + process.env.ENCRYPTION_SALT).digest("hex")
             const sql2 = "INSERT INTO userdata (name, password, email, nickname) \
             VALUES (?, ?, ?, ?)";
             const result2 = await connection.query(sql2, [name, encryptedPw, email, nickname])
@@ -34,7 +33,7 @@ export async function loginAPI(req, res) {
     const name = req.body.id;
     const pw = req.body.pw;
     
-    const encryptedPw = crypto.createHash("sha256").update(pw + ENCRYPTION_SALT).digest("hex")
+    const encryptedPw = crypto.createHash("sha256").update(pw + process.env.ENCRYPTION_SALT).digest("hex")
 
     const findUser = "SELECT `name`, `password`\
     FROM `userdata`\

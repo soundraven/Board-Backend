@@ -211,6 +211,7 @@ export async function getPostDetailAPI(req, res) {
 			board_name: postRow.board_name,
 			content: postRow.content,
 			registered_by: postRow.registered_by,
+			name: postRow.name,
 			registered_date: Math.floor(postDate.getTime() / 1000),
 			like_count: postRow.like_count,
 			dislike_count: postRow.dislike_count,

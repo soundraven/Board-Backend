@@ -2,12 +2,9 @@ import { connection } from "./index.js"
 import { substrContent } from "./utils.js"
 
 export async function postListAPI(req, res) {
-	let searchText = req.query.keyword
-	let searchQuery = ""
-	const searchOpt = req.query.searchOpt
-	const perPage = req.query.itemsPerPage
 
-	const boardName = req.query.board || ""
+	const { searchOpt, itemsPerPage: perPage, boardName = "" } = req.query
+
 	if (boardName == "") {
 		res.status(400).send("Board name is empty")
 		return
@@ -19,25 +16,14 @@ export async function postListAPI(req, res) {
 		return
 	}
 
+	let searchText = req.query.keyword
+	let searchQuery = ""
 	try {
-		//빈칸이면리턴
-		if (searchText != "") { 
-			searchText = searchText.replace(/([%_])/g, "\\$1")
-			//스위치문
-			if (searchOpt === '제목') {
-				searchQuery = "AND post.title LIKE '%" + searchText + "%'"
-			} else if (searchOpt === '제목+내용') {
-				searchQuery = "AND (post.title LIKE '%" + searchText + "%' OR post.content LIKE '%" + searchText + "%')"
-			} else if (searchOpt === '작성자') { 
-				searchQuery = "AND userdata.name LIKE '%" + searchText + "%'"
-			}
-		}
-
 		const [boardInfoResult] = await connection.query("SELECT \
-		`id` \
-		FROM `boards` \
-		WHERE `board_id`=?", [
-			boardName
+			`id` \
+			FROM `boards` \
+			WHERE `board_id`=?", [
+				boardName
 		]) || []
 
 		if (boardInfoResult.length <= 0) {
@@ -45,32 +31,78 @@ export async function postListAPI(req, res) {
 			return
 		}
 
-		const targetBoardID = boardInfoResult[0].id
+		let targetBoardID = boardInfoResult[0].id
+		console.log(targetBoardID)
+		let params = [targetBoardID]
+//이부분 다시 한번 코드 읽어보고 이해하기
+		if (searchText != "") {
+			searchText = searchText.replace(/([%_])/g, "\\$1")
+			//스위치문?
+			// if (searchOpt === 'Opt0') {
+			// 	searchQuery = "AND post.title LIKE '%" + searchText + "%'"
+			// } else if (searchOpt === 'Opt1') {
+			// 	searchQuery = "AND (post.title LIKE '%" + searchText + "%' OR post.content LIKE '%" + searchText + "%')"
+			// } else {
+			// 	searchQuery = "AND userdata.name LIKE '%" + searchText + "%'"
+			// }
+			if (searchOpt === 'Opt0') {
+				searchQuery = "AND post.title LIKE ?";
+				params.push(searchText)
+			} else if (searchOpt === 'Opt1') {
+				searchQuery = "AND (post.title LIKE ? OR post.content LIKE ?)";
+				params.push(searchText, searchText)
+			} else {
+				searchQuery = "AND userdata.name LIKE ?";
+				params.push(searchText)
+			}
+		}
+		// const targetBoardID = boardInfoResult[0].id
 
+		// const [countResult] = await connection.query("SELECT \
+		// COUNT(post.id) AS `count` \
+		// FROM `post` \
+		// LEFT JOIN userdata ON userdata.id=post.registered_by\
+		// WHERE `board_id`=? AND `active`=1 " + searchQuery + "", [
+		// 	targetBoardID
+		// ])
 		const [countResult] = await connection.query("SELECT \
 		COUNT(post.id) AS `count` \
 		FROM `post` \
 		LEFT JOIN userdata ON userdata.id=post.registered_by\
-		WHERE `board_id`=? AND `active`=1 " + searchQuery + "", [
-			targetBoardID
-		])
+		WHERE `board_id`=? AND `active`=1 " + searchQuery + "", params)
 
 		const totalPosts = countResult[0].count
 		const itemsPerPage = Math.min(perPage, 50)
 		const totalPages = Math.ceil(totalPosts / itemsPerPage)
 
-		const [itemResults] = await connection.query("SELECT\
-			post.*, userdata.name, boards.board_name\
-			FROM post\
-			LEFT JOIN boards ON boards.id=post.board_id\
-			LEFT JOIN userdata ON userdata.id=post.registered_by\
-			WHERE post.board_id=? AND `active`=1 " + searchQuery + "\
-			ORDER BY post.id DESC\
-			LIMIT ?,?", [
-			targetBoardID,
-			currentPage * itemsPerPage,
-			itemsPerPage
-		]) || []
+		let itemResults = []
+		if (searchText != "") {
+			[itemResults] = await connection.query("SELECT\
+				post.*, userdata.name, boards.board_name\
+				FROM post\
+				LEFT JOIN boards ON boards.id=post.board_id\
+				LEFT JOIN userdata ON userdata.id=post.registered_by\
+				WHERE post.board_id=? AND `active`=1 " + searchQuery + "\
+				ORDER BY post.id DESC\
+				LIMIT ?,?", [
+				...params,
+				currentPage * itemsPerPage,
+				itemsPerPage,
+			]) || []
+		} else { 
+			[itemResults] = await connection.query("SELECT\
+				post.*, userdata.name, boards.board_name\
+				FROM post\
+				LEFT JOIN boards ON boards.id=post.board_id\
+				LEFT JOIN userdata ON userdata.id=post.registered_by\
+				WHERE post.board_id=? AND `active`=1 " + searchQuery + "\
+				ORDER BY post.id DESC\
+				LIMIT ?,?", [
+				targetBoardID,
+				currentPage * itemsPerPage,
+				itemsPerPage
+			]) || []
+		}
 
 		let responseModels = []
 		for (let i = 0; i < itemResults.length; ++i) {
@@ -103,10 +135,7 @@ export async function postListAPI(req, res) {
 }
 
 export async function boardPostAPI(req, res) { 
-	const boardName = req.body.board_name;
-	const title = req.body.title;
-	const content = req.body.content;
-	const registeredBy = req.body.registered_by;
+	const { boardName, title, content, registeredBy } = req.body
 
 	if (res.locals.user.id !== registeredBy) { 
 		res.status(500).send('validate fail');
@@ -123,12 +152,7 @@ export async function boardPostAPI(req, res) {
 }
 
 export async function postUpdateAPI(req, res) {
-	const boardName = req.body.board_name;
-	const title = req.body.title;
-	const content = req.body.content;
-	const id = req.body.id
-
-	const registeredBy = req.body.registered_by
+	const { boardName, title, content, id, registeredBy } = req.body
 
 	if (res.locals.user.id !== registeredBy) {
 		res.status(500).send('validate fail');
@@ -211,6 +235,7 @@ export async function getPostDetailAPI(req, res) {
 			board_name: postRow.board_name,
 			content: postRow.content,
 			registered_by: postRow.registered_by,
+			name: postRow.name,
 			registered_date: Math.floor(postDate.getTime() / 1000),
 			like_count: postRow.like_count,
 			dislike_count: postRow.dislike_count,

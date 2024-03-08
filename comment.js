@@ -1,9 +1,7 @@
 import { connection } from "./index.js"
 
 export async function submitCmtAPI(req, res) { 
-	const postId = req.body.postId
-	const content = req.body.cmt
-	const registeredBy = req.body.registeredBy
+	const { postId, cmt, registeredBy } = req.body
 
 	if (res.locals.user.id !== registeredBy) {
 		res.status(500).send('validate fail');
@@ -13,7 +11,7 @@ export async function submitCmtAPI(req, res) {
 		VALUES (?, ?, ?)`
 
 	try {
-		const result = await connection.query(insertCmt, [postId, content, registeredBy])
+		const result = await connection.query(insertCmt, [postId, cmt, registeredBy])
 		res.status(200).send()
 	} catch (err) { 
 		res.status(500).send(err)
@@ -38,9 +36,7 @@ export async function deleteCmtAPI(req, res) {
 }
 
 export async function updateCmtAPI(req, res) {
-    const id = req.body.cmtId
-	const cmt = req.body.editedCmt
-	const registeredBy = req.body.registeredBy
+	const { cmtId, editedCmt, registeredBy } = req.body
 
 	if (res.locals.user.id !== registeredBy) {
 		res.status(500).send('validate fail');
@@ -49,7 +45,7 @@ export async function updateCmtAPI(req, res) {
 	const updateCmt = "UPDATE comment SET content = ? WHERE id = ?"
 
 	try {
-		const result = await connection.query(updateCmt, [cmt, id])
+		const result = await connection.query(updateCmt, [editedCmt, cmtId])
 		res.status(200).send()
 	} catch (err) {
 		res.status(500).send(err)

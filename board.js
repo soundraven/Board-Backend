@@ -4,10 +4,8 @@ import { substrContent } from "./utils.js"
 export async function postListAPI(req, res) {
 	let searchText = req.query.keyword
 	let searchQuery = ""
-	const searchOpt = req.query.searchOpt
-	const perPage = req.query.itemsPerPage
+	const { searchOpt, itemsPerPage: perPage, boardName = "" } = req.query
 
-	const boardName = req.query.board || ""
 	if (boardName == "") {
 		res.status(400).send("Board name is empty")
 		return
@@ -20,15 +18,14 @@ export async function postListAPI(req, res) {
 	}
 
 	try {
-		//빈칸이면리턴
 		if (searchText != "") { 
 			searchText = searchText.replace(/([%_])/g, "\\$1")
 			//스위치문
-			if (searchOpt === '제목') {
+			if (searchOpt === 'Opt0') {
 				searchQuery = "AND post.title LIKE '%" + searchText + "%'"
-			} else if (searchOpt === '제목+내용') {
+			} else if (searchOpt === 'Opt1') {
 				searchQuery = "AND (post.title LIKE '%" + searchText + "%' OR post.content LIKE '%" + searchText + "%')"
-			} else if (searchOpt === '작성자') { 
+			} else {
 				searchQuery = "AND userdata.name LIKE '%" + searchText + "%'"
 			}
 		}
@@ -103,10 +100,7 @@ export async function postListAPI(req, res) {
 }
 
 export async function boardPostAPI(req, res) { 
-	const boardName = req.body.board_name;
-	const title = req.body.title;
-	const content = req.body.content;
-	const registeredBy = req.body.registered_by;
+	const { boardName, title, content, registeredBy } = req.body
 
 	if (res.locals.user.id !== registeredBy) { 
 		res.status(500).send('validate fail');
@@ -123,12 +117,7 @@ export async function boardPostAPI(req, res) {
 }
 
 export async function postUpdateAPI(req, res) {
-	const boardName = req.body.board_name;
-	const title = req.body.title;
-	const content = req.body.content;
-	const id = req.body.id
-
-	const registeredBy = req.body.registered_by
+	const { boardName, title, content, id, registeredBy } = req.body
 
 	if (res.locals.user.id !== registeredBy) {
 		res.status(500).send('validate fail');

@@ -2,10 +2,7 @@ import crypto from "crypto"
 import { connection } from "./index.js"
 
 export async function signInAPI(req, res) { 
-    const name = req.body.id;
-    const pw = req.body.pw;
-    const email = req.body.email;
-    const nickname = req.body.nickname;
+    const { name, pw, email, nickname } = req.body
 
     const sql = "SELECT COUNT('name') AS `count`\
     FROM `userdata`\
@@ -30,9 +27,7 @@ export async function signInAPI(req, res) {
 }
 
 export async function loginAPI(req, res) {
-    const name = req.body.id;
-    const pw = req.body.pw;
-    
+    const { name, pw } = req.body
     const encryptedPw = crypto.createHash("sha256").update(pw + process.env.ENCRYPTION_SALT).digest("hex")
 
     const findUser = "SELECT `name`, `password`\

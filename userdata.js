@@ -27,7 +27,7 @@ export async function signInAPI(req, res) {
 }
 
 export async function loginAPI(req, res) {
-    const { name, pw } = req.body
+    const { id: name, pw } = req.body
     const encryptedPw = crypto.createHash("sha256").update(pw + process.env.ENCRYPTION_SALT).digest("hex")
 
     const findUser = "SELECT `name`, `password`\

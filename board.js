@@ -32,95 +32,62 @@ export async function postListAPI(req, res) {
 		}
 
 		let targetBoardID = boardInfoResult[0].id
-		console.log(targetBoardID)
 		let params = [targetBoardID]
-//이부분 다시 한번 코드 읽어보고 이해하기
-		if (searchText != "") {
+
+		if (searchText != "") { 
 			searchText = searchText.replace(/([%_])/g, "\\$1")
-			//스위치문?
-			// if (searchOpt === 'Opt0') {
-			// 	searchQuery = "AND post.title LIKE '%" + searchText + "%'"
-			// } else if (searchOpt === 'Opt1') {
-			// 	searchQuery = "AND (post.title LIKE '%" + searchText + "%' OR post.content LIKE '%" + searchText + "%')"
-			// } else {
-			// 	searchQuery = "AND userdata.name LIKE '%" + searchText + "%'"
-			// }
-			if (searchOpt === 'Opt0') {
-				searchQuery = "AND post.title LIKE ?";
-				params.push(searchText)
-			} else if (searchOpt === 'Opt1') {
-				searchQuery = "AND (post.title LIKE ? OR post.content LIKE ?)";
-				params.push(searchText, searchText)
-			} else {
-				searchQuery = "AND userdata.name LIKE ?";
-				params.push(searchText)
+			switch (searchOpt) { 
+				case 'Opt0':
+					searchQuery = "AND post.title LIKE ?"
+					params.push(searchText)
+					break
+				case 'Opt1':
+					searchQuery = "AND (post.title LIKE ? OR post.content LIKE ?)"
+					params.push(searchText, searchText)
+					break
+				default:
+					searchQuery = "AND userdata.name LIKE ?"
+					params.push(searchText)
 			}
 		}
-		// const targetBoardID = boardInfoResult[0].id
 
-		// const [countResult] = await connection.query("SELECT \
-		// COUNT(post.id) AS `count` \
-		// FROM `post` \
-		// LEFT JOIN userdata ON userdata.id=post.registered_by\
-		// WHERE `board_id`=? AND `active`=1 " + searchQuery + "", [
-		// 	targetBoardID
-		// ])
 		const [countResult] = await connection.query("SELECT \
-		COUNT(post.id) AS `count` \
-		FROM `post` \
-		LEFT JOIN userdata ON userdata.id=post.registered_by\
-		WHERE `board_id`=? AND `active`=1 " + searchQuery + "", params)
+			COUNT(post.id) AS `count` \
+			FROM `post` \
+			LEFT JOIN userdata ON userdata.id=post.registered_by\
+			WHERE `board_id`=? AND `active`=1 " + searchQuery + "", params)
 
 		const totalPosts = countResult[0].count
 		const itemsPerPage = Math.min(perPage, 50)
 		const totalPages = Math.ceil(totalPosts / itemsPerPage)
 
-		let itemResults = []
-		if (searchText != "") {
-			[itemResults] = await connection.query("SELECT\
-				post.*, userdata.name, boards.board_name\
-				FROM post\
-				LEFT JOIN boards ON boards.id=post.board_id\
-				LEFT JOIN userdata ON userdata.id=post.registered_by\
-				WHERE post.board_id=? AND `active`=1 " + searchQuery + "\
-				ORDER BY post.id DESC\
-				LIMIT ?,?", [
+		const [itemResults] = await connection.query("SELECT\
+			post.*, userdata.name, boards.board_name\
+			FROM post\
+			LEFT JOIN boards ON boards.id=post.board_id\
+			LEFT JOIN userdata ON userdata.id=post.registered_by\
+			WHERE post.board_id=? AND `active`=1 " + searchQuery + "\
+			ORDER BY post.id DESC\
+			LIMIT ?,?", [
 				...params,
 				currentPage * itemsPerPage,
 				itemsPerPage,
-			]) || []
-		} else { 
-			[itemResults] = await connection.query("SELECT\
-				post.*, userdata.name, boards.board_name\
-				FROM post\
-				LEFT JOIN boards ON boards.id=post.board_id\
-				LEFT JOIN userdata ON userdata.id=post.registered_by\
-				WHERE post.board_id=? AND `active`=1 " + searchQuery + "\
-				ORDER BY post.id DESC\
-				LIMIT ?,?", [
-				targetBoardID,
-				currentPage * itemsPerPage,
-				itemsPerPage
-			]) || []
-		}
+		]) || []
 
-		let responseModels = []
-		for (let i = 0; i < itemResults.length; ++i) {
-			let row = itemResults[i]
-			let date = new Date(row.registered_date)
-
-			responseModels.push({
+		const postDatas = itemResults.map(row => { 
+			const date = new Date(row.registered_date)
+			return {
 				id: row.id,
 				title: row.title,
 				board_name: row.board_name,
 				content: substrContent(row.content, 50),
 				registered_by: row.name,
 				registered_date: Math.floor(date.getTime() / 1000),
-			})
-		}
+			}
+		})
 
 		res.send({
-			datas: responseModels,
+			datas: postDatas,
 			totalPages: totalPages,
 			totalCount: totalPosts
 		})
@@ -224,41 +191,36 @@ export async function getPostDetailAPI(req, res) {
 		const [commentsCount] = await connection.query(countComments, [id])
 		const totalCommentsCount = commentsCount[0].count
 
-		let responseModels = []
-		let postRow = postDetail[0]
-		let postDate = new Date(postRow.registered_date)
+		const row = postDetail[0]
+		const postDate = new Date(row.registered_date)
+		const postData = {
+				id: row.id,
+				board_id: row.board_id,
+				title: row.title,
+				board_name: row.board_name,
+				content: row.content,
+				registered_by: row.registered_by,
+				name: row.name,
+				registered_date: Math.floor(postDate.getTime() / 1000),
+				like_count: row.like_count,
+				dislike_count: row.dislike_count,
+			}
 
-		responseModels.push({
-			id: postRow.id,
-			board_id: postRow.board_id,
-			title: postRow.title,
-			board_name: postRow.board_name,
-			content: postRow.content,
-			registered_by: postRow.registered_by,
-			name: postRow.name,
-			registered_date: Math.floor(postDate.getTime() / 1000),
-			like_count: postRow.like_count,
-			dislike_count: postRow.dislike_count,
+		const commentsDatas = commentDetail.map(row => { 
+			const date = new Date(row.registered_date)
+			return {
+				id: row.id,
+				post_id: row.post_id,
+				content: row.content,
+				registered_by: row.name,
+				registered_date: Math.floor(date.getTime() / 1000)
+			}
 		})
 
-		let commentModels = []
-		for (let i = 0; i < commentDetail.length; ++i) { 
-			let commentRow = commentDetail[i]
-			let commentDate = new Date(commentRow.registered_date)
-
-			commentModels.push({
-				id: commentRow.id,
-				post_id: commentRow.post_id,
-				content: commentRow.content,
-				registered_by: commentRow.name,
-				registered_date: Math.floor(commentDate.getTime() / 1000)
-			})
-		}
-
 		res.send({
-			datas: responseModels[0],
-			commentsDatas: commentModels,
-			totalCommentsCount,
+			datas: postData,
+			commentsDatas: commentsDatas,
+			totalCommentsCount: totalCommentsCount,
 		})
 	} catch (err) {
 		if (err.code === 11000) {
@@ -310,12 +272,9 @@ export async function getMyPostAPI(req, res) {
 			itemsPerPage
 		])
 
-		let responseModels = []
-		for (let i = 0; i < itemsResult.length; ++i) {
-			let row = itemsResult[i]
-			let date = new Date(row.registered_date)
-
-			responseModels.push({
+		const myPostLists = itemsResult.map(row => { 
+			const date = new Date(row.registered_date)
+			return {
 				id: row.id,
 				title: row.title,
 				board_name: row.board_name,
@@ -323,14 +282,14 @@ export async function getMyPostAPI(req, res) {
 				registered_by: row.name,
 				registered_date: Math.floor(date.getTime() / 1000),
 				active: row.active,
-			})
-		}
+			}
+		})
 
 		res.status(200).send({
 			message: "성공..",
-			datas: responseModels,
+			datas: myPostLists,
 			totalPages: totalPages,
-			totalCount: totalCount
+			totalCount: totalCount,
         })
 	} catch (err) {
 		if (err.code === 11000) {
